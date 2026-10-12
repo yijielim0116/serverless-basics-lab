@@ -1,5 +1,6 @@
 import { Handler } from "aws-lambda";
 import {
+  GetCommand,
   QueryCommand,
   QueryCommandInput,
 } from "@aws-sdk/lib-dynamodb";
@@ -61,6 +62,19 @@ export const handler: Handler = async (event, context) => {
     const body: MovieCastResponse = {
       cast: commandOutput.Items as MovieCast[],
     };
+
+    if (queryParams.facts === "true") {
+      const movieOutput = await ddbDocClient.send(
+        new GetCommand({
+          TableName: process.env.MOVIES_TABLE_NAME,
+          Key: { id: movieId },
+        })
+      );
+      if (movieOutput.Item) {
+        const { title, genre_ids, overview } = movieOutput.Item;
+        body.movie = { title, genre_ids, overview };
+      }
+    }
     return response(200, { data: body })
   } catch (error: any) {
     console.log(JSON.stringify(error));

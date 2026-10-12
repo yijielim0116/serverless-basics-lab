@@ -25,4 +25,5 @@ export type MovieCast = {
 
 export type MovieCastResponse = {
   cast: MovieCast[],
+  movie?: Pick<Movie, "title" | "genre_ids" | "overview">
 };
