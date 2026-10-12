@@ -1,11 +1,9 @@
 import { Handler } from "aws-lambda";
-import { createDDbDocClient } from "../shared/util";
+import { GetCommand } from "@aws-sdk/lib-dynamodb";
+import { createDDbDocClient, response } from "../shared/util";
 
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
-// Initialization
 const ddbDocClient = createDDbDocClient();
-// Handler
+
 export const handler: Handler = async (event, context) => {
   try {
     console.log("Event: ", JSON.stringify(event));
@@ -13,13 +11,8 @@ export const handler: Handler = async (event, context) => {
     const movieId = parameters ? parseInt(parameters.movieId) : undefined;
 
     if (!movieId) {
-      return {
-        statusCode: 400,
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ Message: "Missing movie Id" }),
-      };
+      return response(400, { message: "Missing movie Id" })
+
     }
     const commandOutput = await ddbDocClient.send(
       new GetCommand({
@@ -27,36 +20,16 @@ export const handler: Handler = async (event, context) => {
         Key: { id: movieId },
       })
     );
-    console.log('GetCommand response: ', commandOutput)  // NEW
+    console.log("GetCommand response: ", commandOutput);
     if (!commandOutput.Item) {
-      return {
-        statusCode: 404,
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ Message: "Invalid movie Id" }),
-      };
+      return response(400, { message: "Invalid movie Id" })
     }
     const body = {
       data: commandOutput.Item,
     };
-
-    // Return Response
-    return {
-      statusCode: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(body),
-    };
+    return response(200, body)
   } catch (error: any) {
     console.log(JSON.stringify(error));
-    return {
-      statusCode: 500,
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ error }),
-    };
+    return response(500, { error: (error as Error).message })
   }
 };
