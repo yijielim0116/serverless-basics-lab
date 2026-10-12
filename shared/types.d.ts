@@ -15,3 +15,14 @@ export type Movie =   {
   vote_average: number,
   vote_count: number
 }
+
+export type MovieCast = {
+  movieId: number;
+  actorName: string;
+  roleName: string;
+  roleDescription: string;
+};
+
+export type MovieCastResponse = {
+  cast: MovieCast[],
+};
