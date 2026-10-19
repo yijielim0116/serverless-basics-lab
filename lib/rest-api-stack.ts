@@ -12,21 +12,6 @@ export class RestAPIStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const simpleFn = new lambdanode.NodejsFunction(this, "SimpleFn", {
-      architecture: lambda.Architecture.ARM_64,
-      runtime: lambda.Runtime.NODEJS_22_X,
-      entry: `${__dirname}/../lambdas/simple.ts`,
-      timeout: cdk.Duration.seconds(10),
-      memorySize: 128,
-    });
-
-    const simpleFnURL = simpleFn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.AWS_IAM,   // CHANGE
-      cors: {
-        allowedOrigins: ["*"],
-      },
-    });
-
     const moviesTable = new dynamodb.Table(this, "MoviesTable", {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "id", type: dynamodb.AttributeType.NUMBER },
@@ -64,93 +49,36 @@ export class RestAPIStack extends cdk.Stack {
       }),
     });
 
-    const getMovieByIdFn = new lambdanode.NodejsFunction(
-      this,
-      "GetMovieByIdFn",
-      {
+    // Functions
+
+    const appFn = (
+      name: string,
+      entry: string,
+      environment: Record<string, string> = {}
+    ) =>
+      new lambdanode.NodejsFunction(this, name, {
         architecture: lambda.Architecture.ARM_64,
         runtime: lambda.Runtime.NODEJS_22_X,
-        entry: `${__dirname}/../lambdas/getMovieById.ts`,
+        entry: `${__dirname}/../lambdas/${entry}`,
         timeout: cdk.Duration.seconds(10),
         memorySize: 128,
         environment: {
           TABLE_NAME: moviesTable.tableName,
-          REGION: cdk.Aws.REGION,
+          REGION: this.region,
+          ...environment,
         },
-      }
-    );
+      });
 
-    const getMovieByIdURL = getMovieByIdFn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE,
-      cors: {
-        allowedOrigins: ["*"],
-      },
+    const getMovieByIdFn = appFn("GetMovieByIdFn", "getMovieById.ts");
+    const getMovieCastMembersFn = appFn("GetMovieCastFn", "getMovieCastMembers.ts", {
+      CAST_TABLE_NAME: movieCastsTable.tableName,
     });
 
-    moviesTable.grantReadData(getMovieByIdFn)
+    // Permissions
 
-    new cdk.CfnOutput(this, "Get Movie Function Url", { value: getMovieByIdURL.url });
-
-    const getAllMoviesFn = new lambdanode.NodejsFunction(
-      this,
-      "GetAllMoviesFn",
-      {
-        architecture: lambda.Architecture.ARM_64,
-        runtime: lambda.Runtime.NODEJS_22_X,
-        entry: `${__dirname}/../lambdas/getAllMovies.ts`,
-        timeout: cdk.Duration.seconds(10),
-        memorySize: 128,
-        environment: {
-          TABLE_NAME: moviesTable.tableName,
-          REGION: cdk.Aws.REGION,
-        },
-      }
-    );
-
-    const getAllMoviesURL = getAllMoviesFn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE,
-      cors: {
-        allowedOrigins: ["*"],
-      },
-    });
-
-    moviesTable.grantReadData(getAllMoviesFn)
-
-    new cdk.CfnOutput(this, "Get All Movies Function Url", { value: getAllMoviesURL.url });
-
-    //  Functions .....
-    const getMovieCastMembersFn = new lambdanode.NodejsFunction(
-      this,
-      "GetCastMemberFn",
-      {
-        architecture: lambda.Architecture.ARM_64,
-        runtime: lambda.Runtime.NODEJS_22_X,
-        entry: `${__dirname}/../lambdas/getMovieCastMembers.ts`,
-        timeout: cdk.Duration.seconds(10),
-        memorySize: 128,
-        environment: {
-          CAST_TABLE_NAME: movieCastsTable.tableName,
-          MOVIES_TABLE_NAME: moviesTable.tableName,
-          REGION: "eu-west-1",
-        },
-      }
-    );
-
-    const getMovieCastMembersURL = getMovieCastMembersFn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE,
-      cors: {
-        allowedOrigins: ["*"],
-      },
-    });
-
+    moviesTable.grantReadData(getMovieByIdFn);
     movieCastsTable.grantReadData(getMovieCastMembersFn);
     moviesTable.grantReadData(getMovieCastMembersFn);
-
-    new cdk.CfnOutput(this, "Get Movie Cast Url", {
-      value: getMovieCastMembersURL.url,
-    });
-
-    new cdk.CfnOutput(this, "Simple Function Url", { value: simpleFnURL.url });
 
   }
 }

@@ -66,7 +66,7 @@ export const handler: Handler = async (event, context) => {
     if (queryParams.facts === "true") {
       const movieOutput = await ddbDocClient.send(
         new GetCommand({
-          TableName: process.env.MOVIES_TABLE_NAME,
+          TableName: process.env.TABLE_NAME,
           Key: { id: movieId },
         })
       );
