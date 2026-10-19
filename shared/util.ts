@@ -1,4 +1,4 @@
-import { APIGatewayProxyResult } from "aws-lambda";
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { marshall, marshallOptions, unmarshallOptions } from "@aws-sdk/util-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
@@ -47,3 +47,21 @@ export const response = (
 // Parses a path or query string ID; undefined if it isn't a positive integer.
 export const parseId = (value: string | undefined): number | undefined =>
   value !== undefined && /^[1-9]\d*$/.test(value) ? Number(value) : undefined;
+
+export const isResponse = (value: object): value is APIGatewayProxyResult => 'statusCode' in value;
+
+// Parses a JSON object request body, or returns a 400 response.
+export const parseJsonObject = (
+  event: APIGatewayProxyEvent,
+): Record<string, unknown> | APIGatewayProxyResult => {
+  let body: unknown;
+  try {
+    body = JSON.parse(event.body ?? '{}');
+  } catch {
+    return response(400, { message: 'Request body must be valid JSON' });
+  }
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return response(400, { message: 'Request body must be a JSON object' });
+  }
+  return body as Record<string, unknown>;
+};

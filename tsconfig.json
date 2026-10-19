@@ -21,6 +21,7 @@
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
     "typeRoots": [
       "./node_modules/@types"
     ],
@@ -34,5 +35,9 @@
     "node_modules",
     "cdk.out",
     "test"
+  ],
+  "include": [
+    "**/*.ts",
+    "shared/*.json"
   ]
 }
