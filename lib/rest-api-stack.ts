@@ -8,7 +8,7 @@ import { movies, movieCasts } from "../seed/movies";
 
 import { Construct } from 'constructs';
 
-export class SimpleAppStack extends cdk.Stack {
+export class RestAPIStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
