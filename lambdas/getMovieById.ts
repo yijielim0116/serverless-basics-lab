@@ -1,18 +1,23 @@
-import { Handler } from "aws-lambda";
+import {
+  APIGatewayProxyHandler,
+  APIGatewayProxyEvent,
+  APIGatewayProxyResult,
+} from "aws-lambda";
+import { Movie } from "../shared/types";
 import { GetCommand } from "@aws-sdk/lib-dynamodb";
-import { createDDbDocClient, response } from "../shared/util";
+import { createDDbDocClient, response, parseId } from "../shared/util";
 
 const ddbDocClient = createDDbDocClient();
 
-export const handler: Handler = async (event, context) => {
+export const handler: APIGatewayProxyHandler = async (
+  event: APIGatewayProxyEvent,
+  context
+): Promise<APIGatewayProxyResult> => {
   try {
     console.log("Event: ", JSON.stringify(event));
-    const parameters = event?.queryStringParameters;
-    const movieId = parameters ? parseInt(parameters.movieId) : undefined;
-
-    if (!movieId) {
-      return response(400, { message: "Missing movie Id" })
-
+    const movieId = parseId(event.pathParameters?.movieId);
+    if (movieId === undefined) {
+      return response(400, { message: "movieID must be a positive integer" });
     }
     const commandOutput = await ddbDocClient.send(
       new GetCommand({
@@ -22,14 +27,14 @@ export const handler: Handler = async (event, context) => {
     );
     console.log("GetCommand response: ", commandOutput);
     if (!commandOutput.Item) {
-      return response(400, { message: "Invalid movie Id" })
+      return response(404, { message: `No movie with ID ${movieId}` });
     }
     const body = {
-      data: commandOutput.Item,
+      data: commandOutput.Item as Movie,
     };
-    return response(200, body)
+    return response(200, body);
   } catch (error: any) {
     console.log(JSON.stringify(error));
-    return response(500, { error: (error as Error).message })
+    return response(500, { message: 'Internal server error' });
   }
 };

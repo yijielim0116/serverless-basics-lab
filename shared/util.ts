@@ -1,3 +1,4 @@
+import { APIGatewayProxyResult } from "aws-lambda";
 import { marshall, marshallOptions, unmarshallOptions } from "@aws-sdk/util-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
@@ -37,7 +38,7 @@ export const response = (
   statusCode: number,
   body: object,
   headers: Record<string, string> = {},
-): Record<string, any> => ({
+): APIGatewayProxyResult => ({
   statusCode,
   headers: { 'content-type': 'application/json', ...headers },
   body: JSON.stringify(body),
